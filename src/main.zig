@@ -1,5 +1,6 @@
 const std = @import("std");
 const vec = @import("vector.zig");
+const inShape = @import("shape.zig").inShape;
 
 const EXTRUSION_FACTOR: f32 = 1.0; //Note: Extrusion factor is measured in mm of extrusion per mm traveled
 
