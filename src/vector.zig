@@ -218,12 +218,12 @@ pub const Vector2f = struct {
         return .{ .x = self.x + scalar, .y = self.y + scalar };
     }
 
-    pub fn getAngle(self: *const Vector2f) f64 {
+    pub fn getAngle(self: Vector2f) f32 {
         return std.math.atan2(self.y, self.x);
     }
 
-    pub fn rotate(self: *const Vector2f, angle: f64) Vector2f {
-        const startAngle: f64 = self.getAngle();
+    pub fn rotate(self: Vector2f, angle: f32) Vector2f {
+        const startAngle: f32 = self.getAngle();
         const len: f32 = self.length();
         return .{ .x = std.math.cos(startAngle + angle) * len, .y = std.math.sin(startAngle + angle) * len };
     }
