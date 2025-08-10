@@ -31,31 +31,41 @@ pub fn main() !void {
 }
 
 fn tracePerimeter(toolpath: *std.ArrayList(ToolpathEntry)) !void {
-    const start_point: vec.Vector3f = findSurface();
-    try toolpath.append(.{.is_travel = true, .pos = start_point});
+    const start_point: vec.Vector2f = findSurface();
+    try toolpath.append(.{.is_travel = true, .pos = .{.x = start_point.x, .y = start_point.y, .z = 0.0}});
     
-    var pos: vec.Vector3f = start_point;
-    var prev_pos: vec.Vector3f = pos;
-    var facing: vec.Vector3f = .{.x = 0.0, .y = -1.0, .z = 0.0};
-    for (0..50) |i| {
+    var pos: vec.Vector2f = start_point;
+    var prev_pos: vec.Vector2f = pos;
+    var facing: vec.Vector2f = .{.x = 0.0, .y = -1.0};
+    for (0..20) |i| {
         _ = i;
         
-        const facing_perp_2d: vec.Vector2f = vec.Vector2f.rotate(.{ .x = facing.x, .y = facing.y }, std.math.pi * 0.5);
-        const facing_perp: vec.Vector3f = .{.x = facing_perp_2d.x, .y = facing_perp_2d.y, .z = 0.0}; //Perpendicular (90 degrees CCW) to `facing`
+        const facing_perp: vec.Vector2f = vec.Vector2f.rotate(.{ .x = facing.x, .y = facing.y }, std.math.pi * 0.5);  //Perpendicular (90 degrees CCW) to `facing`
+        //const facing_perp: vec.Vector2f = .{.x = facing_perp_2d.x, .y = facing_perp_2d.y};
         
-        const left_pos: vec.Vector3f = pos.add(facing).add(facing_perp);
-        const right_pos: vec.Vector3f = pos.add(facing).sub(facing_perp);
+        const left_pos: vec.Vector2f = pos.add(facing).add(facing_perp);
+        const right_pos: vec.Vector2f = pos.add(facing).sub(facing_perp);
         
-        const left: bool = inShape(left_pos);
-        const right: bool = inShape(right_pos);
+        const left: bool = inShape(.{.x = left_pos.x, .y = left_pos.y, .z = 0.0});
+        const right: bool = inShape(.{.x = right_pos.x, .y = right_pos.y, .z = 0.0});
         
-        if (right and !left) { //Tracking the edge, following CW
+        //std.debug.print("pos:         {d:.2} {d:.2}\n", .{pos.x, pos.y});
+        //std.debug.print("facing:      {d:.2} {d:.2}\n", .{facing.x, facing.y});
+        //std.debug.print("facing_perp: {d:.2} {d:.2}\n", .{facing_perp.x, facing_perp.y});
+        //std.debug.print("{} {}\n\n", .{left, right});
+        
+        if (!left and right) { //Tracking the edge, following CW
             prev_pos = pos;
-            pos = findEdge(left_pos, right_pos);
+            pos = findEdge(.{.x = left_pos.x, .y = left_pos.y, .z = 0.0}, .{.x = right_pos.x, .y = right_pos.y, .z = 0.0}).xy();
             facing = pos.sub(prev_pos).normalize();
+        } else if (!left and !right) { //Both are outside, turn right so we follow CW
+            
         }
         
-        try toolpath.append(.{.is_travel = false, .pos = pos});
+        try toolpath.append(.{.is_travel = false, .pos = .{.x = pos.x, .y = pos.y, .z = 0.0}});
+        //try toolpath.append(.{.is_travel = true, .pos = .{.x = pos.x+facing.x, .y = pos.y+facing.y, .z = 0.0}});
+        //try toolpath.append(.{.is_travel = true, .pos = .{.x = left_pos.x, .y = left_pos.y, .z = 0.0}});
+        //try toolpath.append(.{.is_travel = true, .pos = .{.x = right_pos.x, .y = right_pos.y, .z = 0.0}});
     }
 }
 
@@ -85,8 +95,8 @@ fn findEdge(a: vec.Vector3f, b: vec.Vector3f) vec.Vector3f {
     return vec.Vector3f.lerp(a, b, .{.x = k, .y = k, .z = k});
 }
 
-fn findSurface() vec.Vector3f {
-    return .{.x = 10.0, .y = 0.0, .z = 0.0};
+fn findSurface() vec.Vector2f {
+    return .{.x = 10.0, .y = 0.0};
 }
 
 fn toolpathToGcode(toolpath: std.ArrayList(ToolpathEntry), writer: anytype) !void {

@@ -120,6 +120,10 @@ pub const Vector3f = struct {
     pub fn max(a: Vector3f, b: Vector3f) Vector3f {
         return .{.x = @max(a.x, b.x), .y = @max(a.y, b.y), .z = @max(a.z, b.z)};
     }
+    
+    pub fn xy(v: Vector3f) Vector2f {
+        return .{.x = v.x, .y = v.y};
+    }
 
     pub fn zero() Vector3f {
         return .{ .x = 0.0, .y = 0.0, .z = 0.0 };
@@ -221,6 +225,10 @@ pub const Vector2f = struct {
     pub fn max(a: Vector2f, b: Vector2f) Vector2f {
         return .{ .x = @max(a.x, b.x), .y = @max(a.y, b.y) };
     }
+    
+    pub fn normalize(v: Vector2f) Vector2f {
+        return v.divideScalar(v.length());
+    }
 
     pub fn addScalar(self: *const Vector2f, scalar: f32) Vector2f {
         return .{ .x = self.x + scalar, .y = self.y + scalar };
@@ -244,7 +252,7 @@ pub const Vector2f = struct {
         return .{ .x = a.x + b.x, .y = a.y + b.y };
     }
 
-    pub fn subtract(a: Vector2f, b: Vector2f) Vector2f {
+    pub fn sub(a: Vector2f, b: Vector2f) Vector2f {
         return .{ .x = a.x - b.x, .y = a.y - b.y };
     }
 };

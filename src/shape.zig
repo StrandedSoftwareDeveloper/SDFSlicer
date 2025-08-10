@@ -3,8 +3,9 @@ const std = @import("std");
 const vec = @import("vector.zig");
 
 pub fn inShape(p: vec.Vector3f) bool {
-    const dist: f32 = boxSDF(p, .{.x = 10.0, .y = 10.0, .z = 10.0});
-    return dist < 0.0;
+    const boxDist: f32 = boxSDF(p, .{.x = 10.0, .y = 10.0, .z = 10.0});
+    //const sphereDist: f32 = sphereSDF(p, 10.0);
+    return boxDist < 0.0;
 }
 
 fn sphereSDF(p: vec.Vector3f, s: f32) f32 {
