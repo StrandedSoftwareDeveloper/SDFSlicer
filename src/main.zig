@@ -37,29 +37,33 @@ fn tracePerimeter(toolpath: *std.ArrayList(ToolpathEntry)) !void {
     var pos: vec.Vector2f = start_point;
     var prev_pos: vec.Vector2f = pos;
     var facing: vec.Vector2f = .{.x = 0.0, .y = -1.0};
-    for (0..20) |i| {
+    for (0..100) |i| {
         _ = i;
         
-        const facing_perp: vec.Vector2f = vec.Vector2f.rotate(.{ .x = facing.x, .y = facing.y }, std.math.pi * 0.5);  //Perpendicular (90 degrees CCW) to `facing`
-        //const facing_perp: vec.Vector2f = .{.x = facing_perp_2d.x, .y = facing_perp_2d.y};
-        
-        const left_pos: vec.Vector2f = pos.add(facing).add(facing_perp);
-        const right_pos: vec.Vector2f = pos.add(facing).sub(facing_perp);
-        
-        const left: bool = inShape(.{.x = left_pos.x, .y = left_pos.y, .z = 0.0});
-        const right: bool = inShape(.{.x = right_pos.x, .y = right_pos.y, .z = 0.0});
-        
-        //std.debug.print("pos:         {d:.2} {d:.2}\n", .{pos.x, pos.y});
-        //std.debug.print("facing:      {d:.2} {d:.2}\n", .{facing.x, facing.y});
-        //std.debug.print("facing_perp: {d:.2} {d:.2}\n", .{facing_perp.x, facing_perp.y});
-        //std.debug.print("{} {}\n\n", .{left, right});
-        
-        if (!left and right) { //Tracking the edge, following CW
-            prev_pos = pos;
-            pos = findEdge(.{.x = left_pos.x, .y = left_pos.y, .z = 0.0}, .{.x = right_pos.x, .y = right_pos.y, .z = 0.0}).xy();
-            facing = pos.sub(prev_pos).normalize();
-        } else if (!left and !right) { //Both are outside, turn right so we follow CW
+        while (true) {
+            const facing_perp: vec.Vector2f = vec.Vector2f.rotate(.{ .x = facing.x, .y = facing.y }, std.math.pi * 0.5);  //Perpendicular (90 degrees CCW) to `facing`
+            //const facing_perp: vec.Vector2f = .{.x = facing_perp_2d.x, .y = facing_perp_2d.y};
             
+            const left_pos: vec.Vector2f = pos.add(facing).add(facing_perp);
+            const right_pos: vec.Vector2f = pos.add(facing).sub(facing_perp);
+            
+            const left: bool = inShape(.{.x = left_pos.x, .y = left_pos.y, .z = 0.0});
+            const right: bool = inShape(.{.x = right_pos.x, .y = right_pos.y, .z = 0.0});
+            
+            //std.debug.print("pos:         {d:.2} {d:.2}\n", .{pos.x, pos.y});
+            //std.debug.print("facing:      {d:.2} {d:.2}\n", .{facing.x, facing.y});
+            //std.debug.print("facing_perp: {d:.2} {d:.2}\n", .{facing_perp.x, facing_perp.y});
+            //std.debug.print("{} {}\n\n", .{left, right});
+            
+            if (!left and right) { //Tracking the edge, following CW
+                prev_pos = pos;
+                pos = findEdge(.{.x = left_pos.x, .y = left_pos.y, .z = 0.0}, .{.x = right_pos.x, .y = right_pos.y, .z = 0.0}).xy();
+                facing = pos.sub(prev_pos).normalize();
+                break;
+            } else if (!left and !right) { //Both are outside, turn right so we follow CW
+                //std.debug.print("Turning right\n", .{});
+                facing = facing.rotate(-0.1);
+            }
         }
         
         try toolpath.append(.{.is_travel = false, .pos = .{.x = pos.x, .y = pos.y, .z = 0.0}});
