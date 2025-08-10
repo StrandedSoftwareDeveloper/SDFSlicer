@@ -77,8 +77,8 @@ pub const Vector3f = struct {
         return self.x * self.x + self.y * self.y + self.z * self.z;
     }
 
-    pub fn lerp(min: Vector3f, max: Vector3f, k: Vector3f) Vector3f {
-        return .{ .x = std.math.lerp(min.x, max.x, k.x), .y = std.math.lerp(min.y, max.y, k.y), .z = std.math.lerp(min.z, max.z, k.z) };
+    pub fn lerp(minimum: Vector3f, maximum: Vector3f, k: Vector3f) Vector3f {
+        return .{ .x = std.math.lerp(minimum.x, maximum.x, k.x), .y = std.math.lerp(minimum.y, maximum.y, k.y), .z = std.math.lerp(minimum.z, maximum.z, k.z) };
     }
 
     pub fn multScalar(self: Vector3f, scalar: f32) Vector3f {
@@ -111,6 +111,14 @@ pub const Vector3f = struct {
 
     pub fn dot(a: Vector3f, b: Vector3f) f32 {
         return a.x * b.x + a.y * b.y + a.z * b.z;
+    }
+    
+    pub fn abs(v: Vector3f) Vector3f {
+        return .{.x = @abs(v.x), .y = @abs(v.y), .z = @abs(v.z)};
+    }
+    
+    pub fn max(a: Vector3f, b: Vector3f) Vector3f {
+        return .{.x = @max(a.x, b.x), .y = @max(a.y, b.y), .z = @max(a.z, b.z)};
     }
 
     pub fn zero() Vector3f {
