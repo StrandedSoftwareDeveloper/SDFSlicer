@@ -25,7 +25,9 @@ pub fn main() !void {
     var bw = std.io.bufferedWriter(stdout_file);
     const stdout = bw.writer();
 
+    try writeTemplateGcode("start.gcode", stdout);
     try toolpathToGcode(toolpath, stdout);
+    try writeTemplateGcode("end.gcode", stdout);
 
     try bw.flush();
 }
@@ -36,8 +38,8 @@ fn tracePerimeter(toolpath: *std.ArrayList(ToolpathEntry)) !void {
     
     var pos: vec.Vector2f = start_point;
     var prev_pos: vec.Vector2f = pos;
-    var facing: vec.Vector2f = .{.x = 0.0, .y = -1.0};
-    for (0..100) |i| {
+    var facing: vec.Vector2f = .{.x = 0.0, .y = -0.5};
+    for (0..160) |i| {
         _ = i;
         
         while (true) {
@@ -58,7 +60,7 @@ fn tracePerimeter(toolpath: *std.ArrayList(ToolpathEntry)) !void {
             if (!left and right) { //Tracking the edge, following CW
                 prev_pos = pos;
                 pos = findEdge(.{.x = left_pos.x, .y = left_pos.y, .z = 0.0}, .{.x = right_pos.x, .y = right_pos.y, .z = 0.0}).xy();
-                facing = pos.sub(prev_pos).normalize();
+                facing = pos.sub(prev_pos).normalize().multScalar(0.5);
                 break;
             } else if (!left and !right) { //Both are outside, turn right so we follow CW
                 //std.debug.print("Turning right\n", .{});
@@ -101,6 +103,14 @@ fn findEdge(a: vec.Vector3f, b: vec.Vector3f) vec.Vector3f {
 
 fn findSurface() vec.Vector2f {
     return .{.x = 10.0, .y = 0.0};
+}
+
+fn writeTemplateGcode(path: []const u8, writer: anytype) !void {
+    const file: std.fs.File = try std.fs.cwd().openFile(path, .{});
+    defer file.close();
+    
+    var fifo = std.fifo.LinearFifo(u8, .{ .Static = 1024 * 4 }).init();
+    try fifo.pump(file.reader(), writer);
 }
 
 fn toolpathToGcode(toolpath: std.ArrayList(ToolpathEntry), writer: anytype) !void {
