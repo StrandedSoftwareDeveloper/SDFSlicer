@@ -2,11 +2,16 @@ const std = @import("std");
 const vec = @import("vector.zig");
 const inShape = @import("shape.zig").inShape;
 
-const EXTRUSION_FACTOR: f32 = 1.0; //Note: Extrusion factor is measured in mm of extrusion per mm traveled
+const EXTRUSION_FACTOR: f32 = 0.1; //Note: Extrusion factor is measured in mm of extrusion per mm traveled
 
 const ToolpathEntry = struct {
     pos: vec.Vector3f,
     is_travel: bool,
+};
+
+const AABB = struct {
+    min: vec.Vector3f,
+    max: vec.Vector3f,
 };
 
 pub fn main() !void {
@@ -19,7 +24,7 @@ pub fn main() !void {
     
     try toolpath.append(.{.is_travel = true, .pos = .{.x = 0.0, .y = 0.0, .z = 0.0}});
     
-    try tracePerimeter(&toolpath);
+    try tracePerimeter(&toolpath, .{.min = .{.x = -11.0, .y = -11.0, .z = -11.0}, .max = .{.x = 11.0, .y = 11.0, .z = 11.0}});
 
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);
@@ -32,15 +37,16 @@ pub fn main() !void {
     try bw.flush();
 }
 
-fn tracePerimeter(toolpath: *std.ArrayList(ToolpathEntry)) !void {
-    const start_point: vec.Vector2f = findSurface();
+fn tracePerimeter(toolpath: *std.ArrayList(ToolpathEntry), aabb: AABB) !void {
+    const start_point: vec.Vector2f = findSurface(aabb, 100);
     try toolpath.append(.{.is_travel = true, .pos = .{.x = start_point.x, .y = start_point.y, .z = 0.0}});
     
     var pos: vec.Vector2f = start_point;
     var prev_pos: vec.Vector2f = pos;
     var facing: vec.Vector2f = .{.x = 0.0, .y = -0.5};
-    for (0..160) |i| {
-        _ = i;
+    for (0..84) |i| {
+        std.debug.print("i:{}\n", .{i});
+        //_ = i;
         
         while (true) {
             const facing_perp: vec.Vector2f = vec.Vector2f.rotate(.{ .x = facing.x, .y = facing.y }, std.math.pi * 0.5);  //Perpendicular (90 degrees CCW) to `facing`
@@ -55,16 +61,21 @@ fn tracePerimeter(toolpath: *std.ArrayList(ToolpathEntry)) !void {
             //std.debug.print("pos:         {d:.2} {d:.2}\n", .{pos.x, pos.y});
             //std.debug.print("facing:      {d:.2} {d:.2}\n", .{facing.x, facing.y});
             //std.debug.print("facing_perp: {d:.2} {d:.2}\n", .{facing_perp.x, facing_perp.y});
-            //std.debug.print("{} {}\n\n", .{left, right});
+            std.debug.print("{} {}\n\n", .{left, right});
+            //std.debug.print("{d:.4}\n\n", .{facing.getAngle()});
             
             if (!left and right) { //Tracking the edge, following CW
                 prev_pos = pos;
                 pos = findEdge(.{.x = left_pos.x, .y = left_pos.y, .z = 0.0}, .{.x = right_pos.x, .y = right_pos.y, .z = 0.0}).xy();
-                facing = pos.sub(prev_pos).normalize().multScalar(0.5);
+                facing = pos.sub(prev_pos).normalize().multScalar(0.2);
                 break;
             } else if (!left and !right) { //Both are outside, turn right so we follow CW
                 //std.debug.print("Turning right\n", .{});
                 facing = facing.rotate(-0.1);
+            } else if (left and right) { //Both are inside, turn left so we follow CW
+                facing = facing.rotate(0.1);
+            } else if (left and !right) { //Facing the wrong way, turn right to turn around
+                facing = facing.rotate(std.math.pi);
             }
         }
         
@@ -101,8 +112,32 @@ fn findEdge(a: vec.Vector3f, b: vec.Vector3f) vec.Vector3f {
     return vec.Vector3f.lerp(a, b, .{.x = k, .y = k, .z = k});
 }
 
-fn findSurface() vec.Vector2f {
-    return .{.x = 10.0, .y = 0.0};
+//Very crude for now, wrote it in a hurry
+fn findSurface(aabb: AABB, resolution: usize) vec.Vector2f {
+    var pos: vec.Vector3f = .{.x = aabb.min.x, .y = aabb.min.y, .z = 0.0};
+    var lastPos: vec.Vector3f = pos;
+    const step: vec.Vector3f = .{.x = (aabb.max.x-aabb.min.x) / @as(f32, @floatFromInt(resolution)), .y = (aabb.max.y-aabb.min.y) / @as(f32, @floatFromInt(resolution)), .z = 0.0};
+    var surface_found: bool = false;
+    
+    outer: for (0..resolution) |y| {
+        for (0..resolution) |x| {
+            _ = x;
+            _ = y;
+            
+            if (inShape(pos)) {
+                surface_found = true;
+                break :outer;
+            }
+            
+            lastPos = pos;
+            pos = pos.add(step);
+        }
+    }
+    if (!surface_found){
+        std.debug.print("Surface not found!\n", .{});
+    }
+    
+    return findEdge(lastPos, pos).xy();
 }
 
 fn writeTemplateGcode(path: []const u8, writer: anytype) !void {
